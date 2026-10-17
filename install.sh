@@ -4,24 +4,29 @@ set -e
 REPO_URL="https://github.com/Painted-J/dotfiles.git"
 INSTALL_DIR="$HOME/dotfiles"
 
-# If not running from inside the cloned repo, clone it and re-execute
+# 1. Ensure git is installed (handling root vs non-root)
+if ! command -v git &> /dev/null; then
+    echo "==> Installing git..."
+    SUDO=""
+    [ "$EUID" -ne 0 ] && SUDO="sudo"
+    
+    if command -v apt-get &> /dev/null; then
+        $SUDO apt-get update && $SUDO apt-get install -y git
+    elif command -v dnf &> /dev/null; then
+        $SUDO dnf install -y git
+    fi
+fi
+
+# 2. Clone repository if not already running from inside it
 if [ ! -d "$INSTALL_DIR/.git" ]; then
     echo "==> Cloning dotfiles repository..."
-    if ! command -v git &> /dev/null; then
-        # Quick fallback to install git just to clone the repo if missing
-        if command -v apt-get &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y git
-        elif command -v dnf &> /dev/null; then
-            sudo dnf install -y git
-        fi
-    fi
     git clone "$REPO_URL" "$INSTALL_DIR"
     exec "$INSTALL_DIR/install.sh"
 fi
 
 echo "==> Starting dotfiles installation..."
 
-# 1. Detect missing packages
+# 3. Detect missing packages
 MISSING_PKGS=()
 for pkg in stow git tmux neovim; do
     cmd="$pkg"
@@ -32,27 +37,30 @@ for pkg in stow git tmux neovim; do
     fi
 done
 
-# 2. Automatically install missing packages
+# 4. Automatically install missing packages
 if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
     echo "==> Installing missing packages: ${MISSING_PKGS[*]}..."
+    SUDO=""
+    [ "$EUID" -ne 0 ] && SUDO="sudo"
+
     if command -v rpm-ostree &> /dev/null; then
-        sudo rpm-ostree install -y "${MISSING_PKGS[@]}"
+        $SUDO rpm-ostree install -y "${MISSING_PKGS[@]}"
     elif command -v apt-get &> /dev/null; then
-        sudo apt-get update && sudo apt-get install -y "${MISSING_PKGS[@]}"
+        $SUDO apt-get update && $SUDO apt-get install -y "${MISSING_PKGS[@]}"
     elif command -v dnf &> /dev/null; then
-        sudo dnf install -y "${MISSING_PKGS[@]}"
+        $SUDO dnf install -y "${MISSING_PKGS[@]}"
     else
-        echo "Error: Unsupported package manager. Please install ${MISSING_PKGS[*]} manually." >&2
+        echo "Error: Unsupported package manager." >&2
         exit 1
     fi
 fi
 
-# 3. Deploy configurations using GNU Stow
+# 5. Deploy configurations using GNU Stow
 echo "==> Linking configurations with Stow..."
 cd "$INSTALL_DIR"
 stow -R -t ~ nvim tmux
 
-# 4. Initialize Tmux Plugin Manager (TPM) if missing
+# 6. Initialize Tmux Plugin Manager (TPM) if missing
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 if [ ! -d "$TPM_DIR" ]; then
     echo "==> Installing Tmux Plugin Manager (TPM)..."
