@@ -1,6 +1,24 @@
 #!/usr/bin/env bash
 set -e
 
+REPO_URL="https://github.com/Painted-J/dotfiles.git"
+INSTALL_DIR="$HOME/dotfiles"
+
+# If not running from inside the cloned repo, clone it and re-execute
+if [ ! -d "$INSTALL_DIR/.git" ]; then
+    echo "==> Cloning dotfiles repository..."
+    if ! command -v git &> /dev/null; then
+        # Quick fallback to install git just to clone the repo if missing
+        if command -v apt-get &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y git
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y git
+        fi
+    fi
+    git clone "$REPO_URL" "$INSTALL_DIR"
+    exec "$INSTALL_DIR/install.sh"
+fi
+
 echo "==> Starting dotfiles installation..."
 
 # 1. Detect missing packages
@@ -14,20 +32,14 @@ for pkg in stow git tmux neovim; do
     fi
 done
 
-# 2. Automatically detect package manager and install missing packages
+# 2. Automatically install missing packages
 if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
     echo "==> Installing missing packages: ${MISSING_PKGS[*]}..."
-    
     if command -v rpm-ostree &> /dev/null; then
-        # Fedora Silverblue / Kinoite (immutable desktop)
         sudo rpm-ostree install -y "${MISSING_PKGS[@]}"
-        echo "==> Packages layered successfully. Note: rpm-ostree changes require a system reboot."
     elif command -v apt-get &> /dev/null; then
-        # Debian / Ubuntu Servers
-        # Map neovim package name to apt's 'neovim' and stow to 'stow'
         sudo apt-get update && sudo apt-get install -y "${MISSING_PKGS[@]}"
     elif command -v dnf &> /dev/null; then
-        # Fedora Server / RHEL / AlmaLinux
         sudo dnf install -y "${MISSING_PKGS[@]}"
     else
         echo "Error: Unsupported package manager. Please install ${MISSING_PKGS[*]} manually." >&2
@@ -37,7 +49,7 @@ fi
 
 # 3. Deploy configurations using GNU Stow
 echo "==> Linking configurations with Stow..."
-cd "$(dirname "$0")"
+cd "$INSTALL_DIR"
 stow -R -t ~ nvim tmux
 
 # 4. Initialize Tmux Plugin Manager (TPM) if missing
