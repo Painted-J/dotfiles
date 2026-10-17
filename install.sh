@@ -8,7 +8,9 @@ INSTALL_DIR="$HOME/dotfiles"
 if ! command -v git &> /dev/null; then
     echo "==> Installing git..."
     SUDO=""
-    [ "$EUID" -ne 0 ] && SUDO="sudo"
+    if [ "$EUID" -ne 0 ] && command -v sudo &> /dev/null; then
+        SUDO="sudo"
+    fi
     
     if command -v apt-get &> /dev/null; then
         $SUDO apt-get update && $SUDO apt-get install -y git
@@ -41,7 +43,9 @@ done
 if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
     echo "==> Installing missing packages: ${MISSING_PKGS[*]}..."
     SUDO=""
-    [ "$EUID" -ne 0 ] && SUDO="sudo"
+    if [ "$EUID" -ne 0 ] && command -v sudo &> /dev/null; then
+        SUDO="sudo"
+    fi
 
     if command -v rpm-ostree &> /dev/null; then
         $SUDO rpm-ostree install -y "${MISSING_PKGS[@]}"
