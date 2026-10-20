@@ -59,7 +59,7 @@ fi
 # 5. Install latest Neovim binary if missing or outdated (< v0.9)
 if ! command -v nvim &> /dev/null || [[ "$(nvim --version | head -n 1)" =~ "v0.7" || "$(nvim --version | head -n 1)" =~ "v0.8" ]]; then
     echo "==> Installing latest Neovim release..."
-    curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz[cite: 1]
+    curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz
     rm -rf /usr/local/nvim-linux64
     tar -C /usr/local -xzf nvim-linux64.tar.gz
     ln -sf /usr/local/nvim-linux64/bin/nvim /usr/local/bin/nvim
