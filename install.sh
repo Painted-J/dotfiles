@@ -28,18 +28,15 @@ fi
 
 echo "==> Starting dotfiles installation..."
 
-# 3. Detect missing packages
+# 3. Detect missing base packages (excluding neovim from apt)
 MISSING_PKGS=()
-for pkg in stow git tmux neovim; do
-    cmd="$pkg"
-    [ "$pkg" = "neovim" ] && cmd="nvim"
-    
-    if ! command -v "$cmd" &> /dev/null; then
+for pkg in stow git tmux; do
+    if ! command -v "$pkg" &> /dev/null; then
         MISSING_PKGS+=("$pkg")
     fi
 done
 
-# 4. Automatically install missing packages
+# 4. Automatically install missing base packages
 if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
     echo "==> Installing missing packages: ${MISSING_PKGS[*]}..."
     SUDO=""
@@ -59,12 +56,22 @@ if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
     fi
 fi
 
-# 5. Deploy configurations using GNU Stow
+# 5. Install latest Neovim binary if missing or outdated (< v0.9)
+if ! command -v nvim &> /dev/null || [[ "$(nvim --version | head -n 1)" =~ "v0.7" || "$(nvim --version | head -n 1)" =~ "v0.8" ]]; then
+    echo "==> Installing latest Neovim release..."
+    curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.tar.gz[cite: 1]
+    rm -rf /usr/local/nvim-linux64
+    tar -C /usr/local -xzf nvim-linux64.tar.gz
+    ln -sf /usr/local/nvim-linux64/bin/nvim /usr/local/bin/nvim
+    rm nvim-linux64.tar.gz
+fi
+
+# 6. Deploy configurations using GNU Stow
 echo "==> Linking configurations with Stow..."
 cd "$INSTALL_DIR"
 stow -R -t ~ nvim tmux
 
-# 6. Initialize Tmux Plugin Manager (TPM) if missing
+# 7. Initialize Tmux Plugin Manager (TPM) if missing
 TPM_DIR="$HOME/.tmux/plugins/tpm"
 if [ ! -d "$TPM_DIR" ]; then
     echo "==> Installing Tmux Plugin Manager (TPM)..."
