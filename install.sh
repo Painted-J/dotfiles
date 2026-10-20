@@ -55,6 +55,7 @@ if ! command -v nvim &> /dev/null || [[ "$(nvim --version | head -n 1)" =~ "v0.7
     echo "==> Installing latest Neovim AppImage..."
     curl -Lo /usr/local/bin/nvim https://github.com/neovim/neovim/releases/download/stable/nvim-linux64.appimage
     chmod +x /usr/local/bin/nvim
+    ln -sf /usr/local/bin/nvim /usr/bin/nvim
 fi
 
 # 6. Deploy configurations using GNU Stow
